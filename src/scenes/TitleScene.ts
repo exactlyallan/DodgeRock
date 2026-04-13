@@ -38,7 +38,7 @@ const CONTROLS_STYLE = new TextStyle({
 
 export type TitleSceneOptions = {
   /** When set, the screen shows the defeat state (same scene as the title, different copy). */
-  gameOverThrows?: number;
+  gameOver?: { throws: number; coins: number };
 };
 
 export class TitleScene extends Container {
@@ -47,8 +47,9 @@ export class TitleScene extends Container {
 
   constructor(options: TitleSceneOptions = {}) {
     super();
-    const isGameOver = options.gameOverThrows !== undefined;
-    const throws = options.gameOverThrows ?? 0;
+    const isGameOver = options.gameOver !== undefined;
+    const throws = options.gameOver?.throws ?? 0;
+    const coins = options.gameOver?.coins ?? 0;
 
     const bg = new Graphics();
     bg.rect(0, 0, GAME_WIDTH, GAME_HEIGHT).fill(isGameOver ? 0x331111 : 0x335588);
@@ -89,11 +90,17 @@ export class TitleScene extends Container {
       sub.y = 180;
       this.addChild(sub);
     } else {
-      const scoreLine = new Text({ text: `Throws: ${throws}`, style: SUB_STYLE });
-      scoreLine.anchor.set(0.5);
-      scoreLine.x = GAME_WIDTH / 2;
-      scoreLine.y = 218;
-      this.addChild(scoreLine);
+      const throwsLine = new Text({ text: `Throws this run: ${throws}`, style: SUB_STYLE });
+      throwsLine.anchor.set(0.5);
+      throwsLine.x = GAME_WIDTH / 2;
+      throwsLine.y = 200;
+      this.addChild(throwsLine);
+
+      const coinsLine = new Text({ text: `Coins in bank: ${coins}`, style: SUB_STYLE });
+      coinsLine.anchor.set(0.5);
+      coinsLine.x = GAME_WIDTH / 2;
+      coinsLine.y = 236;
+      this.addChild(coinsLine);
     }
 
     this.pressText = new Text({

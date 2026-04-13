@@ -5,9 +5,9 @@ import { drawHeart } from '../utils/PixelArt';
 const RETRO_STYLE = new TextStyle({
   fontFamily: 'monospace',
   fontSize: 18,
-  fill: 0xffffff,
+  fill: 0xffdd66,
   fontWeight: 'bold',
-  stroke: { color: 0x000000, width: 3 },
+  stroke: { color: 0x442200, width: 3 },
 });
 
 const PROGRESS_STYLE = new TextStyle({
@@ -18,14 +18,23 @@ const PROGRESS_STYLE = new TextStyle({
   stroke: { color: 0x000000, width: 2 },
 });
 
+const SESSION_STYLE = new TextStyle({
+  fontFamily: 'monospace',
+  fontSize: 13,
+  fill: 0xcccccc,
+  fontWeight: 'bold',
+  stroke: { color: 0x000000, width: 2 },
+});
+
 export class HUD extends Container {
   private heartsGfx = new Graphics();
-  private throwsText: Text;
+  private coinsText: Text;
+  private throwsSmall: Text;
   private progressText: Text;
   private _hearts = 3;
   private _throws = 0;
 
-  constructor() {
+  constructor(initialCoins: number) {
     super();
     this.addChild(this.heartsGfx);
 
@@ -35,11 +44,17 @@ export class HUD extends Container {
     this.progressText.y = 8;
     this.addChild(this.progressText);
 
-    this.throwsText = new Text({ text: 'Throws: 0', style: RETRO_STYLE });
-    this.throwsText.x = GAME_WIDTH - 12;
-    this.throwsText.y = 8;
-    this.throwsText.anchor.set(1, 0);
-    this.addChild(this.throwsText);
+    this.coinsText = new Text({ text: `Coins: ${initialCoins}`, style: RETRO_STYLE });
+    this.coinsText.x = GAME_WIDTH - 12;
+    this.coinsText.y = 6;
+    this.coinsText.anchor.set(1, 0);
+    this.addChild(this.coinsText);
+
+    this.throwsSmall = new Text({ text: 'Throws: 0', style: SESSION_STYLE });
+    this.throwsSmall.x = GAME_WIDTH - 12;
+    this.throwsSmall.y = 28;
+    this.throwsSmall.anchor.set(1, 0);
+    this.addChild(this.throwsSmall);
 
     this.redraw();
   }
@@ -56,9 +71,13 @@ export class HUD extends Container {
     this.redraw();
   }
 
+  setCoins(n: number) {
+    this.coinsText.text = `Coins: ${n}`;
+  }
+
   setThrows(n: number) {
     this._throws = n;
-    this.throwsText.text = `Throws: ${n}`;
+    this.throwsSmall.text = `Throws: ${n}`;
   }
 
   /** Level index is 0-based in code; shown as 1-based to the player. */

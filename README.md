@@ -120,7 +120,7 @@ src/
 │   ├── Player.ts        # Controllable character with movement & states
 │   ├── Boulder.ts       # Physics-driven obstacles
 │   ├── Mountain.ts      # Layered background scenery
-│   └── HUD.ts           # Hearts, throws, level / boulder quota
+│   └── HUD.ts           # Hearts, coins (bank), throws, level / quota
 ├── scenes/              # Screen-level containers
 │   ├── TitleScene.ts    # Title screen, controls guide, and game-over state
 │   ├── PlayScene.ts     # Core gameplay, spawning, collisions
@@ -128,11 +128,14 @@ src/
 ├── systems/             # Shared services
 │   ├── Input.ts         # Keyboard state tracking
 │   ├── LevelConfig.ts   # Loads & validates `assets/configs/levels.json`
+│   ├── EconomyConfig.ts # Coin drop odds from `assets/configs/economy.json`
+│   ├── CoinWallet.ts    # localStorage-backed coin balance
 │   ├── Physics.ts       # Constants & AABB collision
 │   └── SoundManager.ts  # Procedural chiptune sounds
 ├── assets/
 │   └── configs/
-│       └── levels.json  # Boulder count per level (data-driven waves)
+│       ├── levels.json  # Boulder count per level (data-driven waves)
+│       └── economy.json # Coin drop chance on boulder impact
 └── utils/
     ├── PixelArt.ts      # Reusable drawing helpers
     └── Pillarbox.ts     # 16:9 scale-to-fit + TilingSprite edge gutters
@@ -163,3 +166,4 @@ src/
 | `vite.config.ts` | Vite — relative base path (`./`) |
 | `index.html` | Minimal HTML shell with `#game` container and pixelated CSS |
 | `src/assets/configs/levels.json` | Per-level boulder quotas (extend the array to add waves) |
+| `src/assets/configs/economy.json` | `coinDropChanceOnImpact` (0–1) for loot on boulder bounce |

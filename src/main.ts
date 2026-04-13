@@ -2,6 +2,7 @@ import { Application, Container, TextureStyle } from 'pixi.js';
 import { Input } from './systems/Input';
 import { SoundManager } from './systems/SoundManager';
 import { getLevels } from './systems/LevelConfig';
+import { CoinWallet } from './systems/CoinWallet';
 import { TitleScene } from './scenes/TitleScene';
 import { PlayScene } from './scenes/PlayScene';
 import { WinScene } from './scenes/WinScene';
@@ -33,6 +34,7 @@ async function main() {
   const input = new Input();
   const sound = new SoundManager();
   const levels = getLevels();
+  const wallet = new CoinWallet();
 
   let currentScene: Scene | null = null;
   let runLevelIndex = 0;
@@ -45,9 +47,8 @@ async function main() {
     gameWorld.addChild(scene);
   }
 
-  function startTitle(gameOverThrows?: number) {
-    const scene =
-      gameOverThrows !== undefined ? new TitleScene({ gameOverThrows }) : new TitleScene();
+  function startTitle(gameOver?: { throws: number; coins: number }) {
+    const scene = gameOver !== undefined ? new TitleScene({ gameOver }) : new TitleScene();
     setScene(scene);
   }
 
@@ -65,6 +66,7 @@ async function main() {
       level,
       levelIndex: runLevelIndex,
       levelCount: levels.length,
+      wallet,
     });
 
     scene.onLevelComplete = () => {
@@ -78,9 +80,9 @@ async function main() {
       }
     };
 
-    scene.onGameOver = (throwsCount: number) => {
+    scene.onGameOver = (throwsCount: number, coinBalance: number) => {
       sound.lose();
-      startTitle(throwsCount);
+      startTitle({ throws: throwsCount, coins: coinBalance });
     };
 
     setScene(scene);
