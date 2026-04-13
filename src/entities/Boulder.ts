@@ -1,10 +1,12 @@
 import { Container, Graphics } from 'pixi.js';
 import { GROUND_Y, GRAVITY, MOUNTAIN_X, GAME_WIDTH } from '../systems/Physics';
 
-const BOULDER_RADIUS = 12;
+const BOULDER_RADIUS = 29;
 const BOUNCE_FACTOR = 0.55;
 const GROUND_FRICTION = 0.985;
-const MIN_SPEED = 0.15;
+const MIN_SPEED = 0.36;
+const MOUNTAIN_LEFT = MOUNTAIN_X - 96;
+const SLOPE_TOP_Y = 96;
 
 export class Boulder extends Container {
   public vx: number;
@@ -15,13 +17,16 @@ export class Boulder extends Container {
   public beingHeld = false;
   public thrown = false;
   public thrownTimer = 0;
+  /** Rolled once on first bounce; if true, a coin is inside until thrown away or lost. */
+  public hasCoinInside = false;
+  public lootRollDone = false;
   private gfx = new Graphics();
   private rotation_speed: number;
 
   constructor(speed: number) {
     super();
-    this.x = MOUNTAIN_X + 60 + Math.random() * 60;
-    this.y = 30 + Math.random() * 80;
+    this.x = MOUNTAIN_X + 144 + Math.random() * 144;
+    this.y = 72 + Math.random() * 192;
     this.vx = -(1.5 + speed);
     this.vy = 0.5;
     this.rotation_speed = (0.02 + Math.random() * 0.04) * (this.vx < 0 ? -1 : 1);
@@ -62,14 +67,14 @@ export class Boulder extends Container {
 
     const slopeY = this.getMountainSlopeY(this.x);
 
-    if (this.onMountain && this.x > MOUNTAIN_X - 40) {
+    if (this.onMountain && this.x > MOUNTAIN_LEFT) {
       if (this.y + this.radius > slopeY) {
         this.y = slopeY - this.radius;
         this.vy *= -BOUNCE_FACTOR;
-        if (Math.abs(this.vy) < 1) {
-          this.vy = -2;
+        if (Math.abs(this.vy) < 2.4) {
+          this.vy = -4.8;
         }
-        this.vx -= 0.3;
+        this.vx -= 0.72;
         onBounce?.();
       }
     } else {
@@ -78,7 +83,7 @@ export class Boulder extends Container {
 
     if (this.y + this.radius > GROUND_Y) {
       this.y = GROUND_Y - this.radius;
-      if (Math.abs(this.vy) > 2) {
+      if (Math.abs(this.vy) > 4.8) {
         this.vy *= -BOUNCE_FACTOR;
         onBounce?.();
       } else {
@@ -92,15 +97,15 @@ export class Boulder extends Container {
       }
     }
 
-    if (this.x < -30) return false;
-    if (this.x > GAME_WIDTH + 30) return false;
+    if (this.x < -72) return false;
+    if (this.x > GAME_WIDTH + 72) return false;
 
     return true;
   }
 
   private getMountainSlopeY(x: number): number {
-    const t = (x - (MOUNTAIN_X - 40)) / (GAME_WIDTH - (MOUNTAIN_X - 40));
-    return GROUND_Y - t * (GROUND_Y - 40);
+    const t = (x - MOUNTAIN_LEFT) / (GAME_WIDTH - MOUNTAIN_LEFT);
+    return GROUND_Y - t * (GROUND_Y - SLOPE_TOP_Y);
   }
 
   getHitbox() {

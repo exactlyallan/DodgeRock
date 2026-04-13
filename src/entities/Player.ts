@@ -2,13 +2,13 @@ import { Container, Graphics } from 'pixi.js';
 import { GROUND_Y, GAME_WIDTH, GRAVITY } from '../systems/Physics';
 import { Input } from '../systems/Input';
 import { SoundManager } from '../systems/SoundManager';
-import { drawPlayerDucking, drawPlayerStanding } from '../utils/PixelArt';
+import { drawPlayerCarrying, drawPlayerDucking, drawPlayerStanding } from '../utils/PixelArt';
 
-const SPEED = 3.5;
-const JUMP_FORCE = -10;
-const PLAYER_W = 20;
-const PLAYER_H = 36;
-const DUCK_H = 20;
+const SPEED = 8.4;
+const JUMP_FORCE = -24;
+export const PLAYER_W = 48;
+export const PLAYER_H = 86;
+export const DUCK_H = 48;
 
 export class Player extends Container {
   public vx = 0;
@@ -20,7 +20,6 @@ export class Player extends Container {
   private invTimer = 0;
   private gfx = new Graphics();
   private heldGfx = new Graphics();
-  /** Radians; advances while moving on the ground so leg pixels can sine-wiggle. */
   private walkPhase = 0;
   public hitWidth = PLAYER_W;
   public hitHeight = PLAYER_H;
@@ -29,7 +28,7 @@ export class Player extends Container {
     super();
     this.addChild(this.gfx);
     this.addChild(this.heldGfx);
-    this.x = 120;
+    this.x = 288;
     this.y = GROUND_Y - PLAYER_H;
     drawPlayerStanding(this.gfx, this.walkPhase);
   }
@@ -37,9 +36,9 @@ export class Player extends Container {
   private drawHeldBoulder() {
     this.heldGfx.clear();
     if (!this.isHolding) return;
-    this.heldGfx.circle(10, -12, 8).fill(0x888888);
-    this.heldGfx.rect(6, -16, 3, 3).fill(0x666666);
-    this.heldGfx.rect(12, -10, 2, 2).fill(0x666666);
+    this.heldGfx.circle(24, -29, 19).fill(0x888888);
+    this.heldGfx.rect(14, -38, 7, 7).fill(0x666666);
+    this.heldGfx.rect(29, -24, 5, 5).fill(0x666666);
   }
 
   update(dt: number, input: Input, sound: SoundManager) {
@@ -66,7 +65,7 @@ export class Player extends Container {
       this.isDucking = false;
       this.y = GROUND_Y - PLAYER_H;
       this.hitHeight = PLAYER_H;
-      drawPlayerStanding(this.gfx, this.walkPhase);
+      this.redrawBody();
     }
 
     if (input.wasPressed('ArrowUp') && this.onGround) {
@@ -90,17 +89,25 @@ export class Player extends Container {
     }
 
     if (this.x < 0) this.x = 0;
-    if (this.x > GAME_WIDTH - 200) this.x = GAME_WIDTH - 200;
+    if (this.x > GAME_WIDTH - 480) this.x = GAME_WIDTH - 480;
 
     if (this.onGround && !this.isDucking && this.vx !== 0) {
       this.walkPhase += dt * 0.24 * Math.sign(this.vx);
     }
 
     if (!this.isDucking) {
-      drawPlayerStanding(this.gfx, this.walkPhase);
+      this.redrawBody();
     }
 
     this.drawHeldBoulder();
+  }
+
+  private redrawBody() {
+    if (this.isHolding) {
+      drawPlayerCarrying(this.gfx, this.walkPhase);
+    } else {
+      drawPlayerStanding(this.gfx, this.walkPhase);
+    }
   }
 
   getHitbox() {

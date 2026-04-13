@@ -38,7 +38,7 @@ function createRightEdgeTexture(): Texture {
     ctx.fillRect(0, s.y, STRIP_W, s.h);
   }
   ctx.fillStyle = hexCss(0x665544);
-  ctx.fillRect(0, 120, STRIP_W, GROUND_Y - 120);
+  ctx.fillRect(0, 288, STRIP_W, GROUND_Y - 288);
   ctx.fillStyle = hexCss(0x44aa44);
   ctx.fillRect(0, GROUND_Y, STRIP_W, GAME_HEIGHT - GROUND_Y);
   ctx.fillStyle = hexCss(0x338833);

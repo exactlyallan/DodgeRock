@@ -1,5 +1,5 @@
 import { Container, Graphics, Text, TextStyle } from 'pixi.js';
-import { Player } from '../entities/Player';
+import { Player, PLAYER_H } from '../entities/Player';
 import { Boulder } from '../entities/Boulder';
 import { Mountain } from '../entities/Mountain';
 import { HUD } from '../entities/HUD';
@@ -10,18 +10,18 @@ import type { CoinWallet } from '../systems/CoinWallet';
 import { getEconomyConfig } from '../systems/EconomyConfig';
 import { intersects } from '../systems/Physics';
 
-const SPAWN_INTERVAL_MIN = 60;
-const SPAWN_INTERVAL_MAX = 150;
-const PICKUP_RANGE = 40;
-const THROW_DISTANCE = 25;
-const GRACE_PERIOD = 60;
+const SPAWN_INTERVAL_MIN = 144;
+const SPAWN_INTERVAL_MAX = 360;
+const PICKUP_RANGE = 96;
+const THROW_DISTANCE = 60;
+const GRACE_PERIOD = 144;
 
 const POP_STYLE = new TextStyle({
   fontFamily: 'monospace',
-  fontSize: 15,
+  fontSize: 36,
   fill: 0xffcc44,
   fontWeight: 'bold',
-  stroke: { color: 0x221100, width: 3 },
+  stroke: { color: 0x221100, width: 7 },
 });
 
 export type PlaySceneOptions = {
@@ -29,6 +29,7 @@ export type PlaySceneOptions = {
   levelIndex: number;
   levelCount: number;
   wallet: CoinWallet;
+  onHitFlash?: () => void;
 };
 
 export class PlayScene extends Container {
@@ -39,11 +40,10 @@ export class PlayScene extends Container {
   private sound: SoundManager;
   private wallet: CoinWallet;
   private readonly economy = getEconomyConfig();
+  private readonly onHitFlash?: () => void;
   private spawnTimer: number;
   private boulderLayer = new Container();
   private particleLayer = new Container();
-  private shakeTimer = 0;
-  private shakeIntensity = 0;
   private difficulty = 1;
   private graceTimer = GRACE_PERIOD;
 
@@ -61,6 +61,7 @@ export class PlayScene extends Container {
     this.input = input;
     this.sound = sound;
     this.wallet = options.wallet;
+    this.onHitFlash = options.onHitFlash;
     this.boulderQuota = options.level.boulders;
     this.levelIndex = options.levelIndex;
     this.levelCount = options.levelCount;
@@ -76,22 +77,12 @@ export class PlayScene extends Container {
     this.addChild(this.hud);
     this.hud.setLevelProgress(this.levelIndex, this.levelCount, 0, this.boulderQuota);
 
-    this.spawnTimer = 80;
+    this.spawnTimer = 192;
     this.difficulty = Math.min(2.5, 1 + this.levelIndex * 0.12);
   }
 
   update(dt: number) {
     if (this.graceTimer > 0) this.graceTimer -= dt;
-
-    if (this.shakeTimer > 0) {
-      this.shakeTimer -= dt;
-      this.x = (Math.random() - 0.5) * this.shakeIntensity;
-      this.y = (Math.random() - 0.5) * this.shakeIntensity;
-      if (this.shakeTimer <= 0) {
-        this.x = 0;
-        this.y = 0;
-      }
-    }
 
     this.player.update(dt, this.input, this.sound);
 
@@ -116,7 +107,7 @@ export class PlayScene extends Container {
       const b = this.boulders[i];
       const alive = b.update(dt, () => {
         this.sound.bounce();
-        this.rollCoinDrop(b);
+        this.tryRollCoinInside(b);
       });
       if (!alive) {
         if (b.thrown) {
@@ -140,12 +131,13 @@ export class PlayScene extends Container {
     }
   }
 
-  private rollCoinDrop(b: Boulder) {
-    if (Math.random() >= this.economy.coinDropChanceOnImpact) return;
-    const next = this.wallet.add(1);
-    this.hud.setCoins(next);
-    this.sound.coin();
-    this.spawnCoinPopup(b.x, b.y - 18);
+  /** First impact only: maybe this rock hides a coin until thrown. */
+  private tryRollCoinInside(b: Boulder) {
+    if (b.lootRollDone) return;
+    b.lootRollDone = true;
+    if (Math.random() < this.economy.coinDropChanceOnImpact) {
+      b.hasCoinInside = true;
+    }
   }
 
   private spawnCoinPopup(x: number, y: number) {
@@ -157,7 +149,7 @@ export class PlayScene extends Container {
     let life = 36;
     const tick = () => {
       life--;
-      t.y -= 1.1;
+      t.y -= 2.6;
       t.alpha = life / 36;
       if (life <= 0) {
         this.particleLayer.removeChild(t);
@@ -168,7 +160,6 @@ export class PlayScene extends Container {
     requestAnimationFrame(tick);
   }
 
-  /** All rocks for this level are out, and nothing is still rolling, flying, or stuck in the player's hands. */
   private isLevelSettled(): boolean {
     if (this.spawnedCount < this.boulderQuota) return false;
     for (const b of this.boulders) {
@@ -219,12 +210,20 @@ export class PlayScene extends Container {
         b.thrown = true;
         b.visible = true;
         b.x = this.player.x + this.player.hitWidth / 2;
-        b.y = this.player.y - 10;
-        b.vx = 4;
-        b.vy = -3;
+        b.y = this.player.y - PLAYER_H * 0.28;
+        b.vx = 9.6;
+        b.vy = -7.2;
         b.thrownTimer = THROW_DISTANCE;
 
         this.hud.setThrows(this.hud.throws + 1);
+
+        if (b.hasCoinInside) {
+          b.hasCoinInside = false;
+          const next = this.wallet.add(1);
+          this.hud.setCoins(next);
+          this.sound.coin();
+          this.spawnCoinPopup(b.x, b.y - 43);
+        }
         return;
       }
     }
@@ -233,8 +232,7 @@ export class PlayScene extends Container {
   private playerHit() {
     this.player.takeHit();
     this.sound.hit();
-    this.shakeTimer = 12;
-    this.shakeIntensity = 6;
+    this.onHitFlash?.();
     this.hud.setHearts(this.hud.hearts - 1);
     if (this.hud.hearts <= 0) {
       this.onGameOver?.(this.hud.throws, this.wallet.coins);
@@ -245,19 +243,19 @@ export class PlayScene extends Container {
     const colors = [0x888888, 0x999999, 0x777777, 0xaaaaaa, 0x666666];
     for (let i = 0; i < 8; i++) {
       const p = new Graphics();
-      const size = 3 + Math.random() * 4;
+      const size = 7 + Math.random() * 10;
       p.rect(-size / 2, -size / 2, size, size).fill(colors[i % colors.length]);
       p.x = bx;
       p.y = by;
-      const pvx = (Math.random() - 0.5) * 6;
-      const pvy = -1 - Math.random() * 4;
+      const pvx = (Math.random() - 0.5) * 14;
+      const pvy = -2 - Math.random() * 10;
       this.particleLayer.addChild(p);
 
       let life = 30;
       const tick = () => {
         life--;
         p.x += pvx;
-        p.y += pvy + (30 - life) * 0.15;
+        p.y += pvy + (30 - life) * 0.36;
         p.alpha = life / 30;
         if (life <= 0) {
           this.particleLayer.removeChild(p);

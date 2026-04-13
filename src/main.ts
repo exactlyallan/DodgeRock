@@ -1,4 +1,4 @@
-import { Application, Container, TextureStyle } from 'pixi.js';
+import { Application, Container, Graphics, TextureStyle } from 'pixi.js';
 import { Input } from './systems/Input';
 import { SoundManager } from './systems/SoundManager';
 import { getLevels } from './systems/LevelConfig';
@@ -25,11 +25,29 @@ async function main() {
   const pillarbox = createPillarboxLayer(gameWorld);
   app.stage.addChild(pillarbox.root);
 
+  const hitFlash = new Graphics();
+  hitFlash.eventMode = 'none';
+  let flashAlpha = 0;
+
+  function redrawHitFlash() {
+    hitFlash.clear();
+    hitFlash.rect(0, 0, app.renderer.width, app.renderer.height).fill(0xffffff);
+  }
+  redrawHitFlash();
+  hitFlash.alpha = 0;
+  app.stage.addChild(hitFlash);
+
   const layout = () => {
     pillarbox.layout(app.renderer.width, app.renderer.height);
+    redrawHitFlash();
   };
   layout();
   window.addEventListener('resize', layout);
+
+  function triggerHitFlash() {
+    flashAlpha = 0.75;
+    hitFlash.alpha = flashAlpha;
+  }
 
   const input = new Input();
   const sound = new SoundManager();
@@ -67,6 +85,7 @@ async function main() {
       levelIndex: runLevelIndex,
       levelCount: levels.length,
       wallet,
+      onHitFlash: triggerHitFlash,
     });
 
     scene.onLevelComplete = () => {
@@ -92,6 +111,11 @@ async function main() {
 
   app.ticker.add((ticker) => {
     const dt = ticker.deltaTime;
+
+    if (flashAlpha > 0) {
+      flashAlpha = Math.max(0, flashAlpha - 0.16 * dt);
+      hitFlash.alpha = flashAlpha;
+    }
 
     if (currentScene instanceof TitleScene) {
       currentScene.update(dt);

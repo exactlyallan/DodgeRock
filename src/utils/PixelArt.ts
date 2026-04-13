@@ -18,56 +18,82 @@ const P = {
 };
 
 /**
- * Side-view runner: hair fringe, shirt, arms at sides, sine-offset legs when `legPhase` moves.
- * Fits in **36px** tall box (y 0–35) to match the player hitbox.
+ * Side-view runner (scaled for 1920×1080 logical space). ~48×86 px hit box.
  * @param legPhase radians — advance while walking on the ground for a stride wave.
  */
 export function drawPlayerStanding(g: Graphics, legPhase: number) {
   g.clear();
 
-  const leftShift = Math.round(Math.sin(legPhase) * 2);
-  const rightShift = Math.round(Math.sin(legPhase + Math.PI) * 2);
+  const leftShift = Math.round(Math.sin(legPhase) * 5);
+  const rightShift = Math.round(Math.sin(legPhase + Math.PI) * 5);
 
-  // hair — top rows (reads as a fringe above the face)
-  drawPixelRect(g, 3, 0, 14, 2, P.hairHi);
-  drawPixelRect(g, 4, 1, 12, 1, P.hair);
+  drawPixelRect(g, 7, 0, 34, 5, P.hairHi);
+  drawPixelRect(g, 10, 2, 29, 2, P.hair);
 
-  // head + eyes (head starts under hair)
-  drawPixelRect(g, 4, 2, 12, 10, P.skin);
-  drawPixelRect(g, 6, 5, 3, 3, P.eye);
-  drawPixelRect(g, 12, 5, 3, 3, P.eye);
+  drawPixelRect(g, 10, 5, 29, 24, P.skin);
+  drawPixelRect(g, 14, 12, 7, 7, P.eye);
+  drawPixelRect(g, 29, 12, 7, 7, P.eye);
 
-  // arms — sleeves + hands beside torso
-  drawPixelRect(g, 0, 13, 3, 8, P.shirt);
-  drawPixelRect(g, 0, 20, 3, 3, P.skinArm);
-  drawPixelRect(g, 17, 13, 3, 8, P.shirt);
-  drawPixelRect(g, 17, 20, 3, 3, P.skinArm);
+  drawPixelRect(g, 0, 31, 7, 19, P.shirt);
+  drawPixelRect(g, 0, 48, 7, 7, P.skinArm);
+  drawPixelRect(g, 41, 31, 7, 19, P.shirt);
+  drawPixelRect(g, 41, 48, 7, 7, P.skinArm);
 
-  // torso (in front of inner arm lines) + belt
-  drawPixelRect(g, 2, 12, 16, 9, P.shirt);
-  drawPixelRect(g, 2, 21, 16, 3, P.belt);
+  drawPixelRect(g, 5, 29, 38, 22, P.shirt);
+  drawPixelRect(g, 5, 50, 38, 7, P.belt);
 
-  // legs + shoes (horizontal sine = alternating stride)
-  drawPixelRect(g, 3 + leftShift, 24, 6, 5, P.pants);
-  drawPixelRect(g, 3 + leftShift, 29, 6, 5, P.pants);
-  drawPixelRect(g, 11 + rightShift, 24, 6, 5, P.pants);
-  drawPixelRect(g, 11 + rightShift, 29, 6, 5, P.pants);
+  drawPixelRect(g, 7 + leftShift, 58, 14, 12, P.pants);
+  drawPixelRect(g, 7 + leftShift, 70, 14, 12, P.pants);
+  drawPixelRect(g, 26 + rightShift, 58, 14, 12, P.pants);
+  drawPixelRect(g, 26 + rightShift, 70, 14, 12, P.pants);
 
-  drawPixelRect(g, 2 + leftShift, 34, 7, 2, P.shoes);
-  drawPixelRect(g, 11 + rightShift, 34, 7, 2, P.shoes);
+  drawPixelRect(g, 5 + leftShift, 81, 17, 5, P.shoes);
+  drawPixelRect(g, 26 + rightShift, 81, 17, 5, P.shoes);
 }
 
-/** Crouch: arms blanket the eyes — peek of hair still visible. Fits **20px** tall (y 0–19). */
+/** Arms lifted to hold a boulder overhead — legs still walk with `legPhase`. */
+export function drawPlayerCarrying(g: Graphics, legPhase: number) {
+  g.clear();
+
+  const leftShift = Math.round(Math.sin(legPhase) * 5);
+  const rightShift = Math.round(Math.sin(legPhase + Math.PI) * 5);
+
+  drawPixelRect(g, 7, 0, 34, 5, P.hairHi);
+  drawPixelRect(g, 10, 2, 29, 2, P.hair);
+
+  drawPixelRect(g, 10, 5, 29, 22, P.skin);
+  drawPixelRect(g, 14, 10, 7, 7, P.eye);
+  drawPixelRect(g, 29, 10, 7, 7, P.eye);
+
+  // arms straight up (sleeves + skin)
+  drawPixelRect(g, 5, -14, 10, 22, P.shirt);
+  drawPixelRect(g, 5, -18, 10, 7, P.skinArm);
+  drawPixelRect(g, 33, -14, 10, 22, P.shirt);
+  drawPixelRect(g, 33, -18, 10, 7, P.skinArm);
+
+  drawPixelRect(g, 5, 27, 38, 22, P.shirt);
+  drawPixelRect(g, 5, 48, 38, 7, P.belt);
+
+  drawPixelRect(g, 7 + leftShift, 56, 14, 12, P.pants);
+  drawPixelRect(g, 7 + leftShift, 68, 14, 12, P.pants);
+  drawPixelRect(g, 26 + rightShift, 56, 14, 12, P.pants);
+  drawPixelRect(g, 26 + rightShift, 68, 14, 12, P.pants);
+
+  drawPixelRect(g, 5 + leftShift, 79, 17, 5, P.shoes);
+  drawPixelRect(g, 26 + rightShift, 79, 17, 5, P.shoes);
+}
+
+/** Crouch — arms over eyes. ~48×48 px hit box. */
 export function drawPlayerDucking(g: Graphics) {
   g.clear();
 
-  drawPixelRect(g, 3, 0, 14, 2, P.hair);
-  drawPixelRect(g, 4, 2, 12, 6, P.skin);
-  drawPixelRect(g, 1, 3, 18, 6, P.skinArm);
+  drawPixelRect(g, 7, 0, 34, 5, P.hair);
+  drawPixelRect(g, 10, 5, 29, 14, P.skin);
+  drawPixelRect(g, 2, 7, 43, 14, P.skinArm);
 
-  drawPixelRect(g, 0, 9, 20, 5, P.shirt);
-  drawPixelRect(g, 0, 13, 20, 3, P.belt);
-  drawPixelRect(g, 2, 16, 16, 4, P.pants);
+  drawPixelRect(g, 0, 22, 48, 12, P.shirt);
+  drawPixelRect(g, 0, 31, 48, 7, P.belt);
+  drawPixelRect(g, 5, 38, 38, 10, P.pants);
 }
 
 export function drawCloud(g: Graphics, cx: number, cy: number, scale = 1) {
@@ -79,12 +105,14 @@ export function drawCloud(g: Graphics, cx: number, cy: number, scale = 1) {
 
 export function drawHeart(g: Graphics, x: number, y: number, filled: boolean) {
   const c = filled ? 0xff2244 : 0x444444;
-  g.rect(x + 2, y, 4, 2).fill(c);
-  g.rect(x + 10, y, 4, 2).fill(c);
-  g.rect(x, y + 2, 8, 2).fill(c);
-  g.rect(x + 8, y + 2, 8, 2).fill(c);
-  g.rect(x, y + 4, 16, 2).fill(c);
-  g.rect(x + 2, y + 6, 12, 2).fill(c);
-  g.rect(x + 4, y + 8, 8, 2).fill(c);
-  g.rect(x + 6, y + 10, 4, 2).fill(c);
+  const z = 2.4;
+  const X = (n: number) => Math.round(n * z);
+  g.rect(x + X(2), y, X(4), X(2)).fill(c);
+  g.rect(x + X(10), y, X(4), X(2)).fill(c);
+  g.rect(x, y + X(2), X(8), X(2)).fill(c);
+  g.rect(x + X(8), y + X(2), X(8), X(2)).fill(c);
+  g.rect(x, y + X(4), X(16), X(2)).fill(c);
+  g.rect(x + X(2), y + X(6), X(12), X(2)).fill(c);
+  g.rect(x + X(4), y + X(8), X(8), X(2)).fill(c);
+  g.rect(x + X(6), y + X(10), X(4), X(2)).fill(c);
 }

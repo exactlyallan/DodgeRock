@@ -21,27 +21,27 @@ export class Mountain extends Container {
 
   private drawClouds() {
     const clouds = new Graphics();
-    drawCloud(clouds, 60, 30, 1.5);
-    drawCloud(clouds, 188, 60, 1);
-    drawCloud(clouds, 338, 22, 1.2);
-    drawCloud(clouds, 112, 105, 0.8);
-    drawCloud(clouds, 285, 90, 1);
+    drawCloud(clouds, 144, 72, 1.5);
+    drawCloud(clouds, 451, 144, 1);
+    drawCloud(clouds, 811, 53, 1.2);
+    drawCloud(clouds, 269, 252, 0.8);
+    drawCloud(clouds, 684, 216, 1);
     this.addChild(clouds);
   }
 
   private drawMountain() {
     const mtn = new Graphics();
 
-    mtn.moveTo(MOUNTAIN_X - 40, GROUND_Y)
-      .lineTo(MOUNTAIN_X + 20, 40)
-      .lineTo(GAME_WIDTH, 20)
+    mtn.moveTo(MOUNTAIN_X - 96, GROUND_Y)
+      .lineTo(MOUNTAIN_X + 48, 96)
+      .lineTo(GAME_WIDTH, 48)
       .lineTo(GAME_WIDTH, GROUND_Y)
       .closePath()
       .fill(0x665544);
 
-    mtn.moveTo(MOUNTAIN_X - 20, GROUND_Y)
-      .lineTo(MOUNTAIN_X + 40, 60)
-      .lineTo(GAME_WIDTH, 40)
+    mtn.moveTo(MOUNTAIN_X - 48, GROUND_Y)
+      .lineTo(MOUNTAIN_X + 96, 144)
+      .lineTo(GAME_WIDTH, 96)
       .lineTo(GAME_WIDTH, GROUND_Y)
       .closePath()
       .fill(0x776655);
@@ -49,16 +49,16 @@ export class Mountain extends Container {
     const detailColors = [0x554433, 0x887766, 0x998877];
     for (let i = 0; i < 30; i++) {
       const dx = MOUNTAIN_X + Math.random() * (GAME_WIDTH - MOUNTAIN_X);
-      const dy = 60 + Math.random() * (GROUND_Y - 80);
-      const size = 2 + Math.random() * 6;
+      const dy = 144 + Math.random() * (GROUND_Y - 192);
+      const size = 5 + Math.random() * 14;
       mtn.rect(dx, dy, size, size).fill(detailColors[i % detailColors.length]);
     }
 
-    const snowLine = 90;
-    mtn.moveTo(MOUNTAIN_X + 25, snowLine)
-      .lineTo(MOUNTAIN_X + 15, 40)
-      .lineTo(GAME_WIDTH, 20)
-      .lineTo(GAME_WIDTH, snowLine - 40)
+    const snowLine = 216;
+    mtn.moveTo(MOUNTAIN_X + 60, snowLine)
+      .lineTo(MOUNTAIN_X + 36, 96)
+      .lineTo(GAME_WIDTH, 48)
+      .lineTo(GAME_WIDTH, snowLine - 96)
       .closePath()
       .fill(0xeeeeff);
 
@@ -67,13 +67,14 @@ export class Mountain extends Container {
 
   private drawGround() {
     const ground = new Graphics();
-    ground.rect(0, GROUND_Y, GAME_WIDTH, GAME_HEIGHT - GROUND_Y).fill(0x44aa44);
-    ground.rect(0, GROUND_Y, GAME_WIDTH, 6).fill(0x338833);
+    const grassH = GAME_HEIGHT - GROUND_Y;
+    ground.rect(0, GROUND_Y, GAME_WIDTH, grassH).fill(0x44aa44);
+    ground.rect(0, GROUND_Y, GAME_WIDTH, 14).fill(0x338833);
 
     for (let i = 0; i < 40; i++) {
       const gx = Math.random() * GAME_WIDTH;
-      const gy = GROUND_Y + 8 + Math.random() * (GAME_HEIGHT - GROUND_Y - 12);
-      ground.rect(gx, gy, 3, 3).fill(0x339933);
+      const gy = GROUND_Y + 19 + Math.random() * (grassH - 29);
+      ground.rect(gx, gy, 7, 7).fill(0x339933);
     }
     this.addChild(ground);
   }
