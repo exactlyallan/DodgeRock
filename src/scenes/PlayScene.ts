@@ -67,7 +67,7 @@ export class PlayScene extends Container {
     this.player.update(dt, this.input, this.sound);
 
     // pick up / throw
-    if (this.input.wasPressed('ArrowUp')) {
+    if (this.input.wasPressed('Space')) {
       if (this.player.isHolding) {
         this.throwBoulder();
       } else {

@@ -122,10 +122,9 @@ src/
 │   ├── Mountain.ts      # Layered background scenery
 │   └── HUD.ts           # Hearts and score display
 ├── scenes/              # Screen-level containers
-│   ├── TitleScene.ts    # Title screen with controls guide
+│   ├── TitleScene.ts    # Title screen, controls guide, and game-over state
 │   ├── PlayScene.ts     # Core gameplay, spawning, collisions
-│   ├── WinScene.ts      # Victory screen
-│   └── GameOverScene.ts # Defeat screen
+│   └── WinScene.ts      # Victory screen
 ├── systems/             # Shared services
 │   ├── Input.ts         # Keyboard state tracking
 │   ├── Physics.ts       # Constants & AABB collision
@@ -136,13 +135,13 @@ src/
 
 ### Key Files
 
-**`src/main.ts`** — Entry point. Initialises the PixiJS application (800 × 600, nearest-neighbour scaling), wires up the game loop via the ticker, and manages scene transitions (Title → Play → Win / Game Over).
+**`src/main.ts`** — Entry point. Initialises the PixiJS application (800 × 600, nearest-neighbour scaling), wires up the game loop via the ticker, and manages scene transitions (Title → Play → Win; on defeat, Title returns in a game-over state).
 
-**`src/entities/Player.ts`** — The player character. Handles horizontal movement, jumping, ducking, boulder pickup/throw, invincibility frames with a blink effect, and hitbox resizing when ducking.
+**`src/entities/Player.ts`** — The player character. Handles horizontal movement, jumping, ducking, invincibility frames with a blink effect, and hitbox resizing when ducking.
 
 **`src/entities/Boulder.ts`** — Boulders that spawn on the mountain, bounce down the slope, and roll across the ground. Tracks state (moving, stopped, held, thrown) and applies gravity, friction, and rotation.
 
-**`src/scenes/PlayScene.ts`** — The main gameplay scene. Owns the update loop for spawning boulders at random intervals, running collision checks, managing screen shake on hit, particle effects on boulder break, and triggering win/lose conditions.
+**`src/scenes/PlayScene.ts`** — The main gameplay scene. Owns the update loop for spawning boulders at random intervals, running collision checks, pickup/throw (Space), managing screen shake on hit, particle effects on boulder break, and triggering win/lose conditions.
 
 **`src/systems/Input.ts`** — Lightweight keyboard manager exposing `isDown(key)` and `wasPressed(key)` per frame.
 

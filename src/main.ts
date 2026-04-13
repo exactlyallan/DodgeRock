@@ -4,10 +4,9 @@ import { SoundManager } from './systems/SoundManager';
 import { TitleScene } from './scenes/TitleScene';
 import { PlayScene } from './scenes/PlayScene';
 import { WinScene } from './scenes/WinScene';
-import { GameOverScene } from './scenes/GameOverScene';
 import { GAME_WIDTH, GAME_HEIGHT } from './systems/Physics';
 
-type Scene = TitleScene | PlayScene | WinScene | GameOverScene;
+type Scene = TitleScene | PlayScene | WinScene;
 
 async function main() {
   TextureStyle.defaultOptions.scaleMode = 'nearest';
@@ -34,8 +33,9 @@ async function main() {
     app.stage.addChild(scene);
   }
 
-  function startTitle() {
-    const scene = new TitleScene();
+  function startTitle(gameOverScore?: number) {
+    const scene =
+      gameOverScore !== undefined ? new TitleScene({ gameOverScore }) : new TitleScene();
     setScene(scene);
   }
 
@@ -48,8 +48,7 @@ async function main() {
     };
     scene.onGameOver = (score: number) => {
       sound.lose();
-      const over = new GameOverScene(score);
-      setScene(over);
+      startTitle(score);
     };
     setScene(scene);
   }
@@ -67,11 +66,6 @@ async function main() {
     } else if (currentScene instanceof PlayScene) {
       currentScene.update(dt);
     } else if (currentScene instanceof WinScene) {
-      currentScene.update(dt);
-      if (input.wasPressed('Space')) {
-        startGame();
-      }
-    } else if (currentScene instanceof GameOverScene) {
       currentScene.update(dt);
       if (input.wasPressed('Space')) {
         startGame();

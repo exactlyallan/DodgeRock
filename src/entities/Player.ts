@@ -105,7 +105,7 @@ export class Player extends Container {
     }
 
     // jump
-    if (input.wasPressed('Space') && this.onGround) {
+    if (input.wasPressed('ArrowUp') && this.onGround) {
       this.vy = JUMP_FORCE;
       this.onGround = false;
       sound.jump();
