@@ -1,22 +1,14 @@
 # Dodge Rock
-A retro pixel-art side-scrolling browser game built with PixiJS. Dodge boulders tumbling down a mountain, pick them up, and throw them to score points.
+A retro pixel-art side-scrolling browser game built with PixiJS. Dodge boulders tumbling down a mountain, pick them up, and throw them.
 
-## Prompt
-    I want to do a lilttle browser mini game called: dodge rock.
+## Built With Cursor 
 
-    The style is old bit graphic side scrolling. Use https://pixijs.com/  as the game engine. It should run in the browser. 
+---------
 
-    The controls are arrow keys. Space the jump. Down the duck. Left to move left. Right to move right. Up to pick up. 
+## Getting Starte (playing)
+Check out [Gameplay Guide](GAMEPLAY.MD)
 
-    The game is simple but colorful graphics. Simple sound effects, blips and boops. The player can only move on a simple surface left and right and they must dodge boulders that are falling and bouncing off a very tall mountain to the right of the screen. The boulders move from right to left. 
-
-    Depending on the speed the boulder can roll off the screen to the left or come to a slow stop. It does not hurt the player if it is stopped but they have to jump over it. If a moving boulder hits them they lose a heart. They player has 3 hearts. 
-
-    The player can pick up a boulder with the up button and throw it by pressing the up button again. This tosses the boulder a short distance and it breaks and disappears. The player gets a point for doing this. The player wins after 10 points.
-
-
-
-## Getting Started
+## Getting Started (dev)
 
 ### Prerequisites
 
@@ -50,24 +42,6 @@ Outputs optimized static files to `dist/`.
 npm run preview
 ```
 
-## Controls
-
-| Key | Action |
-|---|---|
-| Arrow Left / Right | Move |
-| Space | Jump |
-| Arrow Down | Duck |
-| Arrow Up | Pick up stopped boulder / Throw held boulder |
-
-## How to Play
-
-- Boulders roll down the mountain from right to left. Dodge them or duck under them.
-- A moving boulder that hits you costs one heart (you have 3).
-- Boulders that slow to a stop are harmless but block your path — jump over them.
-- Walk up to a stopped boulder and press **Up** to pick it up, then press **Up** again to throw it. The boulder breaks and you score a point.
-- Reach **10 points** to win. Lose all **3 hearts** and it's game over.
-- Difficulty increases as your score climbs.
-
 ## Tech Stack
 
 | Tool | Purpose |
@@ -89,33 +63,40 @@ src/
 │   ├── Player.ts        # Controllable character with movement & states
 │   ├── Boulder.ts       # Physics-driven obstacles
 │   ├── Mountain.ts      # Layered background scenery
-│   └── HUD.ts           # Hearts and score display
+│   └── HUD.ts           # Hearts, coins (bank), throws, level / quota
 ├── scenes/              # Screen-level containers
-│   ├── TitleScene.ts    # Title screen with controls guide
+│   ├── TitleScene.ts    # Title screen, controls guide, and game-over state
 │   ├── PlayScene.ts     # Core gameplay, spawning, collisions
-│   ├── WinScene.ts      # Victory screen
-│   └── GameOverScene.ts # Defeat screen
+│   └── WinScene.ts      # Victory screen
 ├── systems/             # Shared services
 │   ├── Input.ts         # Keyboard state tracking
+│   ├── LevelConfig.ts   # Loads & validates `assets/configs/levels.json`
+│   ├── EconomyConfig.ts # Coin drop odds from `assets/configs/economy.json`
+│   ├── CoinWallet.ts    # localStorage-backed coin balance
 │   ├── Physics.ts       # Constants & AABB collision
 │   └── SoundManager.ts  # Procedural chiptune sounds
+├── assets/
+│   └── configs/
+│       ├── levels.json  # Boulder count per level (data-driven waves)
+│       └── economy.json # Coin drop chance on boulder impact
 └── utils/
-    └── PixelArt.ts      # Reusable drawing helpers
+    ├── PixelArt.ts      # Clouds, hearts, procedural player (stand / duck)
+    └── Pillarbox.ts     # 16:9 scale-to-fit + TilingSprite edge gutters
 ```
 
 ### Key Files
 
-**`src/main.ts`** — Entry point. Initialises the PixiJS application (800 × 600, nearest-neighbour scaling), wires up the game loop via the ticker, and manages scene transitions (Title → Play → Win / Game Over).
+**`src/main.ts`** — Entry point. Initialises PixiJS with `resizeTo: window`, a 16:9 letterboxed `gameWorld` (1920×1080 logical pixels), `TilingSprite` gutters (`src/utils/Pillarbox.ts`), and a fullscreen **hit flash** overlay. Runs a multi-level session from `levels.json` (Title → chained Play levels → Win; on defeat, Title with game-over copy).
 
-**`src/entities/Player.ts`** — The player character. Handles horizontal movement, jumping, ducking, boulder pickup/throw, invincibility frames with a blink effect, and hitbox resizing when ducking.
+**`src/entities/Player.ts`** — The player character. Movement, jump, duck, i-frames; hitbox shrinks when ducking. The look is drawn via `PixelArt.ts` helpers (hair, side arms, sine-shimmied legs, duck pose with arms over the eyes).
 
 **`src/entities/Boulder.ts`** — Boulders that spawn on the mountain, bounce down the slope, and roll across the ground. Tracks state (moving, stopped, held, thrown) and applies gravity, friction, and rotation.
 
-**`src/scenes/PlayScene.ts`** — The main gameplay scene. Owns the update loop for spawning boulders at random intervals, running collision checks, managing screen shake on hit, particle effects on boulder break, and triggering win/lose conditions.
+**`src/scenes/PlayScene.ts`** — The main gameplay scene. Spawns a finite quota of boulders per level from config, runs collisions, pickup/throw (Space), screen shake, break particles, and fires **level complete** when every rock is settled (or gone), or **game over** when hearts hit zero.
 
 **`src/systems/Input.ts`** — Lightweight keyboard manager exposing `isDown(key)` and `wasPressed(key)` per frame.
 
-**`src/systems/SoundManager.ts`** — Generates retro sound effects (jump, hit, bounce, pickup, throw, win, lose) using oscillators and noise via the Web Audio API.
+**`src/systems/SoundManager.ts`** — Generates retro sound effects (jump, hit, bounce, pickup, throw, level complete, win, lose) using oscillators and noise via the Web Audio API.
 
 **`src/systems/Physics.ts`** — Exports shared constants (`GRAVITY`, `GROUND_Y`, `GAME_WIDTH`, `GAME_HEIGHT`, `MOUNTAIN_X`) and an AABB `intersects` helper.
 
@@ -127,3 +108,5 @@ src/
 | `tsconfig.json` | TypeScript — strict mode, ES2020 target, bundler resolution |
 | `vite.config.ts` | Vite — relative base path (`./`) |
 | `index.html` | Minimal HTML shell with `#game` container and pixelated CSS |
+| `src/assets/configs/levels.json` | Per-level boulder quotas (extend the array to add waves) |
+| `src/assets/configs/economy.json` | `coinDropChanceOnImpact` (0–1) for loot on boulder bounce |

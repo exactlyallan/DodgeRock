@@ -1,19 +1,36 @@
-import { Container, Graphics } from 'pixi.js';
-import { Player } from '../entities/Player';
+import { Container, Graphics, Text, TextStyle } from 'pixi.js';
+import { Player, PLAYER_H } from '../entities/Player';
 import { Boulder } from '../entities/Boulder';
 import { Mountain } from '../entities/Mountain';
 import { HUD } from '../entities/HUD';
 import { Input } from '../systems/Input';
 import { SoundManager } from '../systems/SoundManager';
-import { intersects, GROUND_Y } from '../systems/Physics';
+import type { LevelDef } from '../systems/LevelConfig';
+import type { CoinWallet } from '../systems/CoinWallet';
+import { getEconomyConfig } from '../systems/EconomyConfig';
+import { intersects } from '../systems/Physics';
 
-const SPAWN_INTERVAL_MIN = 60;
-const SPAWN_INTERVAL_MAX = 150;
-const PICKUP_RANGE = 40;
-const THROW_DISTANCE = 25;
-const WIN_SCORE = 10;
-const MAX_STOPPED_BOULDERS = 4;
-const GRACE_PERIOD = 60;
+const SPAWN_INTERVAL_MIN = 144;
+const SPAWN_INTERVAL_MAX = 360;
+const PICKUP_RANGE = 96;
+const THROW_DISTANCE = 60;
+const GRACE_PERIOD = 144;
+
+const POP_STYLE = new TextStyle({
+  fontFamily: 'monospace',
+  fontSize: 36,
+  fill: 0xffcc44,
+  fontWeight: 'bold',
+  stroke: { color: 0x221100, width: 7 },
+});
+
+export type PlaySceneOptions = {
+  level: LevelDef;
+  levelIndex: number;
+  levelCount: number;
+  wallet: CoinWallet;
+  onHitFlash?: () => void;
+};
 
 export class PlayScene extends Container {
   private player: Player;
@@ -21,21 +38,33 @@ export class PlayScene extends Container {
   private hud: HUD;
   private input: Input;
   private sound: SoundManager;
+  private wallet: CoinWallet;
+  private readonly economy = getEconomyConfig();
+  private readonly onHitFlash?: () => void;
   private spawnTimer: number;
   private boulderLayer = new Container();
   private particleLayer = new Container();
-  private shakeTimer = 0;
-  private shakeIntensity = 0;
   private difficulty = 1;
   private graceTimer = GRACE_PERIOD;
 
-  public onWin?: () => void;
-  public onGameOver?: (score: number) => void;
+  private readonly boulderQuota: number;
+  private readonly levelIndex: number;
+  private readonly levelCount: number;
+  private spawnedCount = 0;
+  private levelFinishEmitted = false;
 
-  constructor(input: Input, sound: SoundManager) {
+  public onLevelComplete?: () => void;
+  public onGameOver?: (throwsCount: number, coinBalance: number) => void;
+
+  constructor(input: Input, sound: SoundManager, options: PlaySceneOptions) {
     super();
     this.input = input;
     this.sound = sound;
+    this.wallet = options.wallet;
+    this.onHitFlash = options.onHitFlash;
+    this.boulderQuota = options.level.boulders;
+    this.levelIndex = options.levelIndex;
+    this.levelCount = options.levelCount;
 
     this.addChild(new Mountain());
     this.addChild(this.boulderLayer);
@@ -44,30 +73,20 @@ export class PlayScene extends Container {
     this.player = new Player();
     this.addChild(this.player);
 
-    this.hud = new HUD();
+    this.hud = new HUD(this.wallet.coins);
     this.addChild(this.hud);
+    this.hud.setLevelProgress(this.levelIndex, this.levelCount, 0, this.boulderQuota);
 
-    this.spawnTimer = 80;
+    this.spawnTimer = 192;
+    this.difficulty = Math.min(2.5, 1 + this.levelIndex * 0.12);
   }
 
   update(dt: number) {
     if (this.graceTimer > 0) this.graceTimer -= dt;
 
-    // screen shake
-    if (this.shakeTimer > 0) {
-      this.shakeTimer -= dt;
-      this.x = (Math.random() - 0.5) * this.shakeIntensity;
-      this.y = (Math.random() - 0.5) * this.shakeIntensity;
-      if (this.shakeTimer <= 0) {
-        this.x = 0;
-        this.y = 0;
-      }
-    }
-
     this.player.update(dt, this.input, this.sound);
 
-    // pick up / throw
-    if (this.input.wasPressed('ArrowUp')) {
+    if (this.input.wasPressed('Space')) {
       if (this.player.isHolding) {
         this.throwBoulder();
       } else {
@@ -75,31 +94,21 @@ export class PlayScene extends Container {
       }
     }
 
-    // spawn boulders
-    this.spawnTimer -= dt;
-    if (this.spawnTimer <= 0) {
-      this.spawnBoulder();
-      const range = SPAWN_INTERVAL_MAX - SPAWN_INTERVAL_MIN;
-      this.spawnTimer = SPAWN_INTERVAL_MIN + Math.random() * range / this.difficulty;
-    }
-
-    // remove oldest stopped boulders if too many pile up
-    const stoppedBoulders = this.boulders.filter(b => b.stopped && !b.beingHeld);
-    if (stoppedBoulders.length > MAX_STOPPED_BOULDERS) {
-      const toRemove = stoppedBoulders.slice(0, stoppedBoulders.length - MAX_STOPPED_BOULDERS);
-      for (const old of toRemove) {
-        old.alpha -= 0.05;
-        if (old.alpha <= 0) {
-          this.boulderLayer.removeChild(old);
-          this.boulders.splice(this.boulders.indexOf(old), 1);
-        }
+    if (this.spawnedCount < this.boulderQuota) {
+      this.spawnTimer -= dt;
+      if (this.spawnTimer <= 0) {
+        this.spawnBoulder();
+        const range = SPAWN_INTERVAL_MAX - SPAWN_INTERVAL_MIN;
+        this.spawnTimer = SPAWN_INTERVAL_MIN + (Math.random() * range) / this.difficulty;
       }
     }
 
-    // update boulders
     for (let i = this.boulders.length - 1; i >= 0; i--) {
       const b = this.boulders[i];
-      const alive = b.update(dt, () => this.sound.bounce());
+      const alive = b.update(dt, () => {
+        this.sound.bounce();
+        this.tryRollCoinInside(b);
+      });
       if (!alive) {
         if (b.thrown) {
           this.spawnBreakParticles(b.x, b.y);
@@ -111,21 +120,63 @@ export class PlayScene extends Container {
 
       if (b.stopped || b.beingHeld || b.thrown) continue;
 
-      // collision with player (skip during grace period)
       if (this.graceTimer <= 0 && !this.player.invincible && intersects(this.player.getHitbox(), b.getHitbox())) {
         this.playerHit();
       }
     }
 
-    // ramp difficulty over time
-    this.difficulty = Math.min(2.5, 1 + this.hud.score * 0.1);
+    if (!this.levelFinishEmitted && this.isLevelSettled()) {
+      this.levelFinishEmitted = true;
+      this.onLevelComplete?.();
+    }
+  }
+
+  /** First impact only: maybe this rock hides a coin until thrown. */
+  private tryRollCoinInside(b: Boulder) {
+    if (b.lootRollDone) return;
+    b.lootRollDone = true;
+    if (Math.random() < this.economy.coinDropChanceOnImpact) {
+      b.hasCoinInside = true;
+    }
+  }
+
+  private spawnCoinPopup(x: number, y: number) {
+    const t = new Text({ text: '+1 coin', style: POP_STYLE });
+    t.anchor.set(0.5);
+    t.x = x;
+    t.y = y;
+    this.particleLayer.addChild(t);
+    let life = 36;
+    const tick = () => {
+      life--;
+      t.y -= 2.6;
+      t.alpha = life / 36;
+      if (life <= 0) {
+        this.particleLayer.removeChild(t);
+      } else {
+        requestAnimationFrame(tick);
+      }
+    };
+    requestAnimationFrame(tick);
+  }
+
+  private isLevelSettled(): boolean {
+    if (this.spawnedCount < this.boulderQuota) return false;
+    for (const b of this.boulders) {
+      if (b.beingHeld) return false;
+      if (b.thrown) return false;
+      if (!b.stopped) return false;
+    }
+    return true;
   }
 
   private spawnBoulder() {
-    const speed = (0.5 + Math.random() * 2) * this.difficulty;
-    const b = new Boulder(speed);
-    this.boulders.push(b);
-    this.boulderLayer.addChild(b);
+    const speed = 0.5 + Math.random() * 2;
+    const boulder = new Boulder(speed * this.difficulty);
+    this.boulders.push(boulder);
+    this.boulderLayer.addChild(boulder);
+    this.spawnedCount++;
+    this.hud.setLevelProgress(this.levelIndex, this.levelCount, this.spawnedCount, this.boulderQuota);
   }
 
   private tryPickup() {
@@ -152,7 +203,6 @@ export class PlayScene extends Container {
     this.player.isHolding = false;
     this.sound.throwRock();
 
-    // find the held boulder and launch it
     for (const b of this.boulders) {
       if (b.beingHeld) {
         b.beingHeld = false;
@@ -160,14 +210,19 @@ export class PlayScene extends Container {
         b.thrown = true;
         b.visible = true;
         b.x = this.player.x + this.player.hitWidth / 2;
-        b.y = this.player.y - 10;
-        b.vx = 4;
-        b.vy = -3;
+        b.y = this.player.y - PLAYER_H * 0.28;
+        b.vx = 9.6;
+        b.vy = -7.2;
         b.thrownTimer = THROW_DISTANCE;
 
-        this.hud.setScore(this.hud.score + 1);
-        if (this.hud.score >= WIN_SCORE) {
-          this.onWin?.();
+        this.hud.setThrows(this.hud.throws + 1);
+
+        if (b.hasCoinInside) {
+          b.hasCoinInside = false;
+          const next = this.wallet.add(1);
+          this.hud.setCoins(next);
+          this.sound.coin();
+          this.spawnCoinPopup(b.x, b.y - 43);
         }
         return;
       }
@@ -177,11 +232,10 @@ export class PlayScene extends Container {
   private playerHit() {
     this.player.takeHit();
     this.sound.hit();
-    this.shakeTimer = 12;
-    this.shakeIntensity = 6;
+    this.onHitFlash?.();
     this.hud.setHearts(this.hud.hearts - 1);
     if (this.hud.hearts <= 0) {
-      this.onGameOver?.(this.hud.score);
+      this.onGameOver?.(this.hud.throws, this.wallet.coins);
     }
   }
 
@@ -189,19 +243,19 @@ export class PlayScene extends Container {
     const colors = [0x888888, 0x999999, 0x777777, 0xaaaaaa, 0x666666];
     for (let i = 0; i < 8; i++) {
       const p = new Graphics();
-      const size = 3 + Math.random() * 4;
+      const size = 7 + Math.random() * 10;
       p.rect(-size / 2, -size / 2, size, size).fill(colors[i % colors.length]);
       p.x = bx;
       p.y = by;
-      const pvx = (Math.random() - 0.5) * 6;
-      const pvy = -1 - Math.random() * 4;
+      const pvx = (Math.random() - 0.5) * 14;
+      const pvy = -2 - Math.random() * 10;
       this.particleLayer.addChild(p);
 
       let life = 30;
       const tick = () => {
         life--;
         p.x += pvx;
-        p.y += pvy + (30 - life) * 0.15;
+        p.y += pvy + (30 - life) * 0.36;
         p.alpha = life / 30;
         if (life <= 0) {
           this.particleLayer.removeChild(p);

@@ -1,56 +1,109 @@
-import { Application, TextureStyle } from 'pixi.js';
+import { Application, Container, Graphics, TextureStyle } from 'pixi.js';
 import { Input } from './systems/Input';
 import { SoundManager } from './systems/SoundManager';
+import { getLevels } from './systems/LevelConfig';
+import { CoinWallet } from './systems/CoinWallet';
 import { TitleScene } from './scenes/TitleScene';
 import { PlayScene } from './scenes/PlayScene';
 import { WinScene } from './scenes/WinScene';
-import { GameOverScene } from './scenes/GameOverScene';
-import { GAME_WIDTH, GAME_HEIGHT } from './systems/Physics';
+import { createPillarboxLayer } from './utils/Pillarbox';
 
-type Scene = TitleScene | PlayScene | WinScene | GameOverScene;
+type Scene = TitleScene | PlayScene | WinScene;
 
 async function main() {
   TextureStyle.defaultOptions.scaleMode = 'nearest';
 
   const app = new Application();
   await app.init({
-    width: GAME_WIDTH,
-    height: GAME_HEIGHT,
-    backgroundColor: 0x87ceeb,
+    resizeTo: window,
+    backgroundColor: 0x111111,
     antialias: false,
   });
   document.getElementById('game')!.appendChild(app.canvas);
 
+  const gameWorld = new Container();
+  const pillarbox = createPillarboxLayer(gameWorld);
+  app.stage.addChild(pillarbox.root);
+
+  const hitFlash = new Graphics();
+  hitFlash.eventMode = 'none';
+  let flashAlpha = 0;
+
+  function redrawHitFlash() {
+    hitFlash.clear();
+    hitFlash.rect(0, 0, app.renderer.width, app.renderer.height).fill(0xffffff);
+  }
+  redrawHitFlash();
+  hitFlash.alpha = 0;
+  app.stage.addChild(hitFlash);
+
+  const layout = () => {
+    pillarbox.layout(app.renderer.width, app.renderer.height);
+    redrawHitFlash();
+  };
+  layout();
+  window.addEventListener('resize', layout);
+
+  function triggerHitFlash() {
+    flashAlpha = 0.75;
+    hitFlash.alpha = flashAlpha;
+  }
+
   const input = new Input();
   const sound = new SoundManager();
+  const levels = getLevels();
+  const wallet = new CoinWallet();
 
   let currentScene: Scene | null = null;
+  let runLevelIndex = 0;
 
   function setScene(scene: Scene) {
     if (currentScene) {
-      app.stage.removeChild(currentScene);
+      gameWorld.removeChild(currentScene);
     }
     currentScene = scene;
-    app.stage.addChild(scene);
+    gameWorld.addChild(scene);
   }
 
-  function startTitle() {
-    const scene = new TitleScene();
+  function startTitle(gameOver?: { throws: number; coins: number }) {
+    const scene = gameOver !== undefined ? new TitleScene({ gameOver }) : new TitleScene();
     setScene(scene);
   }
 
-  function startGame() {
-    const scene = new PlayScene(input, sound);
-    scene.onWin = () => {
-      sound.win();
-      const win = new WinScene();
-      setScene(win);
+  function startGame(continueRun: boolean) {
+    if (!continueRun) {
+      runLevelIndex = 0;
+    }
+
+    const level = levels[runLevelIndex];
+    if (!level) {
+      return;
+    }
+
+    const scene = new PlayScene(input, sound, {
+      level,
+      levelIndex: runLevelIndex,
+      levelCount: levels.length,
+      wallet,
+      onHitFlash: triggerHitFlash,
+    });
+
+    scene.onLevelComplete = () => {
+      runLevelIndex++;
+      if (runLevelIndex >= levels.length) {
+        sound.win();
+        setScene(new WinScene());
+      } else {
+        sound.levelComplete();
+        startGame(true);
+      }
     };
-    scene.onGameOver = (score: number) => {
+
+    scene.onGameOver = (throwsCount: number, coinBalance: number) => {
       sound.lose();
-      const over = new GameOverScene(score);
-      setScene(over);
+      startTitle({ throws: throwsCount, coins: coinBalance });
     };
+
     setScene(scene);
   }
 
@@ -59,22 +112,22 @@ async function main() {
   app.ticker.add((ticker) => {
     const dt = ticker.deltaTime;
 
+    if (flashAlpha > 0) {
+      flashAlpha = Math.max(0, flashAlpha - 0.16 * dt);
+      hitFlash.alpha = flashAlpha;
+    }
+
     if (currentScene instanceof TitleScene) {
       currentScene.update(dt);
       if (input.wasPressed('Space')) {
-        startGame();
+        startGame(false);
       }
     } else if (currentScene instanceof PlayScene) {
       currentScene.update(dt);
     } else if (currentScene instanceof WinScene) {
       currentScene.update(dt);
       if (input.wasPressed('Space')) {
-        startGame();
-      }
-    } else if (currentScene instanceof GameOverScene) {
-      currentScene.update(dt);
-      if (input.wasPressed('Space')) {
-        startGame();
+        startGame(false);
       }
     }
 
