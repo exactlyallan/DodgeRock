@@ -137,7 +137,7 @@ src/
 │       ├── levels.json  # Boulder count per level (data-driven waves)
 │       └── economy.json # Coin drop chance on boulder impact
 └── utils/
-    ├── PixelArt.ts      # Reusable drawing helpers
+    ├── PixelArt.ts      # Clouds, hearts, procedural player (stand / duck)
     └── Pillarbox.ts     # 16:9 scale-to-fit + TilingSprite edge gutters
 ```
 
@@ -145,7 +145,7 @@ src/
 
 **`src/main.ts`** — Entry point. Initialises PixiJS with `resizeTo: window`, a 16:9 letterboxed `gameWorld` container, and `TilingSprite` gutters (`src/utils/Pillarbox.ts`). Runs a multi-level session from `levels.json` (Title → chained Play levels → Win; on defeat, Title in game-over state).
 
-**`src/entities/Player.ts`** — The player character. Handles horizontal movement, jumping, ducking, invincibility frames with a blink effect, and hitbox resizing when ducking.
+**`src/entities/Player.ts`** — The player character. Movement, jump, duck, i-frames; hitbox shrinks when ducking. The look is drawn via `PixelArt.ts` helpers (hair, side arms, sine-shimmied legs, duck pose with arms over the eyes).
 
 **`src/entities/Boulder.ts`** — Boulders that spawn on the mountain, bounce down the slope, and roll across the ground. Tracks state (moving, stopped, held, thrown) and applies gravity, friction, and rotation.
 

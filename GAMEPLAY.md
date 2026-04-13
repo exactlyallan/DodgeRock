@@ -10,6 +10,10 @@ How to play the game and how the game works.
 | Arrow Down | Duck |
 | Space | Pick up stopped boulder / Throw held boulder |
 
+## Hero
+
+Your runner is drawn with code, not PNGs: there is a **hair fringe**, **sleeves and hands** at the sides, and when you **duck** the arms cover the face like you are bracing for impact. When you **walk**, the legs wiggle in a tiny sine-wave shuffle.
+
 ## Display
 
 The playfield is a fixed **16:9** picture (800×450 logical pixels) scaled to fit your browser window. Extra space outside that frame is filled with **tiled copies** of the sky and ground colors at the edges—like wallpaper that matches the game’s border.
