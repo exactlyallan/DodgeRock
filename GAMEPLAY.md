@@ -10,6 +10,10 @@ How to play the game and how the game works.
 | Arrow Down | Duck |
 | Space | Pick up stopped boulder / Throw held boulder |
 
+## Display
+
+The playfield is a fixed **16:9** picture (800×450 logical pixels) scaled to fit your browser window. Extra space outside that frame is filled with **tiled copies** of the sky and ground colors at the edges—like wallpaper that matches the game’s border.
+
 ## Game 
 
 - Boulders roll down the mountain from right to left. Dodge them or duck under them.

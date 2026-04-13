@@ -1,10 +1,10 @@
-import { Application, TextureStyle } from 'pixi.js';
+import { Application, Container, TextureStyle } from 'pixi.js';
 import { Input } from './systems/Input';
 import { SoundManager } from './systems/SoundManager';
 import { TitleScene } from './scenes/TitleScene';
 import { PlayScene } from './scenes/PlayScene';
 import { WinScene } from './scenes/WinScene';
-import { GAME_WIDTH, GAME_HEIGHT } from './systems/Physics';
+import { createPillarboxLayer } from './utils/Pillarbox';
 
 type Scene = TitleScene | PlayScene | WinScene;
 
@@ -13,12 +13,21 @@ async function main() {
 
   const app = new Application();
   await app.init({
-    width: GAME_WIDTH,
-    height: GAME_HEIGHT,
-    backgroundColor: 0x87ceeb,
+    resizeTo: window,
+    backgroundColor: 0x111111,
     antialias: false,
   });
   document.getElementById('game')!.appendChild(app.canvas);
+
+  const gameWorld = new Container();
+  const pillarbox = createPillarboxLayer(gameWorld);
+  app.stage.addChild(pillarbox.root);
+
+  const layout = () => {
+    pillarbox.layout(app.renderer.width, app.renderer.height);
+  };
+  layout();
+  window.addEventListener('resize', layout);
 
   const input = new Input();
   const sound = new SoundManager();
@@ -27,10 +36,10 @@ async function main() {
 
   function setScene(scene: Scene) {
     if (currentScene) {
-      app.stage.removeChild(currentScene);
+      gameWorld.removeChild(currentScene);
     }
     currentScene = scene;
-    app.stage.addChild(scene);
+    gameWorld.addChild(scene);
   }
 
   function startTitle(gameOverScore?: number) {

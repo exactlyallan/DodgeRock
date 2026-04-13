@@ -56,20 +56,20 @@ export class TitleScene extends Container {
 
     if (!isGameOver) {
       const clouds = new Graphics();
-      drawCloud(clouds, 120, 80, 2);
-      drawCloud(clouds, 400, 50, 1.5);
-      drawCloud(clouds, 600, 100, 1.8);
+      drawCloud(clouds, 90, 60, 2);
+      drawCloud(clouds, 300, 38, 1.5);
+      drawCloud(clouds, 450, 75, 1.8);
       this.addChild(clouds);
 
       const deco = new Graphics();
       for (let i = 0; i < 5; i++) {
         const bx = 100 + i * 150;
-        const by = 420 + Math.sin(i * 1.5) * 20;
+        const by = 315 + Math.sin(i * 1.5) * 15;
         deco.circle(bx, by, 14 + i * 2).fill(0x888888);
         deco.rect(bx - 3, by - 2, 5, 2).fill(0x666666);
       }
-      deco.rect(0, 460, GAME_WIDTH, GAME_HEIGHT - 460).fill(0x44aa44);
-      deco.rect(0, 460, GAME_WIDTH, 6).fill(0x338833);
+      deco.rect(0, 345, GAME_WIDTH, GAME_HEIGHT - 345).fill(0x44aa44);
+      deco.rect(0, 345, GAME_WIDTH, 6).fill(0x338833);
       this.addChild(deco);
     }
 
@@ -79,20 +79,20 @@ export class TitleScene extends Container {
     });
     headline.anchor.set(0.5);
     headline.x = GAME_WIDTH / 2;
-    headline.y = isGameOver ? 220 : 180;
+    headline.y = isGameOver ? 165 : 135;
     this.addChild(headline);
 
     if (!isGameOver) {
       const sub = new Text({ text: 'A retro boulder-dodging adventure', style: SUB_STYLE });
       sub.anchor.set(0.5);
       sub.x = GAME_WIDTH / 2;
-      sub.y = 240;
+      sub.y = 180;
       this.addChild(sub);
     } else {
       const scoreLine = new Text({ text: `Score: ${score} / 10`, style: SUB_STYLE });
       scoreLine.anchor.set(0.5);
       scoreLine.x = GAME_WIDTH / 2;
-      scoreLine.y = 290;
+      scoreLine.y = 218;
       this.addChild(scoreLine);
     }
 
@@ -102,7 +102,7 @@ export class TitleScene extends Container {
     });
     this.pressText.anchor.set(0.5);
     this.pressText.x = GAME_WIDTH / 2;
-    this.pressText.y = isGameOver ? 360 : 300;
+    this.pressText.y = isGameOver ? 270 : 225;
     this.addChild(this.pressText);
 
     if (!isGameOver) {
@@ -118,7 +118,7 @@ export class TitleScene extends Container {
       });
       controls.anchor.set(0.5, 0);
       controls.x = GAME_WIDTH / 2;
-      controls.y = 350;
+      controls.y = 262;
       this.addChild(controls);
     }
   }

@@ -1,5 +1,5 @@
 import { Container, Graphics } from 'pixi.js';
-import { GAME_WIDTH, GAME_HEIGHT, GROUND_Y, MOUNTAIN_X } from '../systems/Physics';
+import { GAME_WIDTH, GAME_HEIGHT, GROUND_Y, MOUNTAIN_X, SKY_STRIPES } from '../systems/Physics';
 import { drawCloud } from '../utils/PixelArt';
 
 export class Mountain extends Container {
@@ -13,14 +13,7 @@ export class Mountain extends Container {
 
   private drawSky() {
     const sky = new Graphics();
-    const stripes = [
-      { y: 0, h: 100, c: 0x4488cc },
-      { y: 100, h: 100, c: 0x55aadd },
-      { y: 200, h: 100, c: 0x66bbee },
-      { y: 300, h: 120, c: 0x77ccee },
-      { y: 420, h: 100, c: 0x88ddff },
-    ];
-    for (const s of stripes) {
+    for (const s of SKY_STRIPES) {
       sky.rect(0, s.y, GAME_WIDTH, s.h).fill(s.c);
     }
     this.addChild(sky);
@@ -28,11 +21,11 @@ export class Mountain extends Container {
 
   private drawClouds() {
     const clouds = new Graphics();
-    drawCloud(clouds, 80, 40, 1.5);
-    drawCloud(clouds, 250, 80, 1);
-    drawCloud(clouds, 450, 30, 1.2);
-    drawCloud(clouds, 150, 140, 0.8);
-    drawCloud(clouds, 380, 120, 1);
+    drawCloud(clouds, 60, 30, 1.5);
+    drawCloud(clouds, 188, 60, 1);
+    drawCloud(clouds, 338, 22, 1.2);
+    drawCloud(clouds, 112, 105, 0.8);
+    drawCloud(clouds, 285, 90, 1);
     this.addChild(clouds);
   }
 
@@ -61,7 +54,7 @@ export class Mountain extends Container {
       mtn.rect(dx, dy, size, size).fill(detailColors[i % detailColors.length]);
     }
 
-    const snowLine = 120;
+    const snowLine = 90;
     mtn.moveTo(MOUNTAIN_X + 25, snowLine)
       .lineTo(MOUNTAIN_X + 15, 40)
       .lineTo(GAME_WIDTH, 20)

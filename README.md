@@ -130,12 +130,13 @@ src/
 │   ├── Physics.ts       # Constants & AABB collision
 │   └── SoundManager.ts  # Procedural chiptune sounds
 └── utils/
-    └── PixelArt.ts      # Reusable drawing helpers
+    ├── PixelArt.ts      # Reusable drawing helpers
+    └── Pillarbox.ts     # 16:9 scale-to-fit + TilingSprite edge gutters
 ```
 
 ### Key Files
 
-**`src/main.ts`** — Entry point. Initialises the PixiJS application (800 × 600, nearest-neighbour scaling), wires up the game loop via the ticker, and manages scene transitions (Title → Play → Win; on defeat, Title returns in a game-over state).
+**`src/main.ts`** — Entry point. Initialises PixiJS with `resizeTo: window`, a 16:9 letterboxed `gameWorld` container, and `TilingSprite` gutters (`src/utils/Pillarbox.ts`) that repeat thin edge strips around the fixed logical size (800 × 450). Wires the ticker and scene transitions (Title → Play → Win; on defeat, Title returns in a game-over state).
 
 **`src/entities/Player.ts`** — The player character. Handles horizontal movement, jumping, ducking, invincibility frames with a blink effect, and hitbox resizing when ducking.
 
