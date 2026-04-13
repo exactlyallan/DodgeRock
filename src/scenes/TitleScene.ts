@@ -38,7 +38,7 @@ const CONTROLS_STYLE = new TextStyle({
 
 export type TitleSceneOptions = {
   /** When set, the screen shows the defeat state (same scene as the title, different copy). */
-  gameOverScore?: number;
+  gameOverThrows?: number;
 };
 
 export class TitleScene extends Container {
@@ -47,8 +47,8 @@ export class TitleScene extends Container {
 
   constructor(options: TitleSceneOptions = {}) {
     super();
-    const isGameOver = options.gameOverScore !== undefined;
-    const score = options.gameOverScore ?? 0;
+    const isGameOver = options.gameOverThrows !== undefined;
+    const throws = options.gameOverThrows ?? 0;
 
     const bg = new Graphics();
     bg.rect(0, 0, GAME_WIDTH, GAME_HEIGHT).fill(isGameOver ? 0x331111 : 0x335588);
@@ -89,7 +89,7 @@ export class TitleScene extends Container {
       sub.y = 180;
       this.addChild(sub);
     } else {
-      const scoreLine = new Text({ text: `Score: ${score} / 10`, style: SUB_STYLE });
+      const scoreLine = new Text({ text: `Throws: ${throws}`, style: SUB_STYLE });
       scoreLine.anchor.set(0.5);
       scoreLine.x = GAME_WIDTH / 2;
       scoreLine.y = 218;

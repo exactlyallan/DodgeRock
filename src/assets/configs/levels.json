@@ -1,0 +1,10 @@
+{
+  "levels": [
+    { "id": 1, "boulders": 20 },
+    { "id": 2, "boulders": 26 },
+    { "id": 3, "boulders": 32 },
+    { "id": 4, "boulders": 40 },
+    { "id": 5, "boulders": 48 },
+    { "id": 6, "boulders": 56 }
+  ]
+}

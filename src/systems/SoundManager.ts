@@ -74,6 +74,13 @@ export class SoundManager {
     this.playTone(80, 0.1, 'triangle', 0.08);
   }
 
+  /** Short cue when a level is cleared (still more mountains to climb). */
+  levelComplete() {
+    this.playTone(523, 0.12, 'square', 0.1);
+    setTimeout(() => this.playTone(659, 0.14, 'square', 0.1), 90);
+    setTimeout(() => this.playTone(784, 0.16, 'square', 0.1), 190);
+  }
+
   win() {
     const notes = [523, 659, 784, 1047];
     notes.forEach((freq, i) => {

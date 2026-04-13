@@ -1,5 +1,6 @@
 import { Container, Graphics, Text, TextStyle } from 'pixi.js';
 import { GAME_WIDTH, GAME_HEIGHT } from '../systems/Physics';
+import { getLevels } from '../systems/LevelConfig';
 
 const BIG_STYLE = new TextStyle({
   fontFamily: 'monospace',
@@ -45,7 +46,8 @@ export class WinScene extends Container {
     title.y = 220;
     this.addChild(title);
 
-    const sub = new Text({ text: '10 boulders cleared!', style: SUB_STYLE });
+    const n = getLevels().length;
+    const sub = new Text({ text: `All ${n} levels survived!`, style: SUB_STYLE });
     sub.anchor.set(0.5);
     sub.x = GAME_WIDTH / 2;
     sub.y = 290;

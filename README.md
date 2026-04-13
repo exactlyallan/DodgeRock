@@ -120,15 +120,19 @@ src/
 │   ├── Player.ts        # Controllable character with movement & states
 │   ├── Boulder.ts       # Physics-driven obstacles
 │   ├── Mountain.ts      # Layered background scenery
-│   └── HUD.ts           # Hearts and score display
+│   └── HUD.ts           # Hearts, throws, level / boulder quota
 ├── scenes/              # Screen-level containers
 │   ├── TitleScene.ts    # Title screen, controls guide, and game-over state
 │   ├── PlayScene.ts     # Core gameplay, spawning, collisions
 │   └── WinScene.ts      # Victory screen
 ├── systems/             # Shared services
 │   ├── Input.ts         # Keyboard state tracking
+│   ├── LevelConfig.ts   # Loads & validates `assets/configs/levels.json`
 │   ├── Physics.ts       # Constants & AABB collision
 │   └── SoundManager.ts  # Procedural chiptune sounds
+├── assets/
+│   └── configs/
+│       └── levels.json  # Boulder count per level (data-driven waves)
 └── utils/
     ├── PixelArt.ts      # Reusable drawing helpers
     └── Pillarbox.ts     # 16:9 scale-to-fit + TilingSprite edge gutters
@@ -136,17 +140,17 @@ src/
 
 ### Key Files
 
-**`src/main.ts`** — Entry point. Initialises PixiJS with `resizeTo: window`, a 16:9 letterboxed `gameWorld` container, and `TilingSprite` gutters (`src/utils/Pillarbox.ts`) that repeat thin edge strips around the fixed logical size (800 × 450). Wires the ticker and scene transitions (Title → Play → Win; on defeat, Title returns in a game-over state).
+**`src/main.ts`** — Entry point. Initialises PixiJS with `resizeTo: window`, a 16:9 letterboxed `gameWorld` container, and `TilingSprite` gutters (`src/utils/Pillarbox.ts`). Runs a multi-level session from `levels.json` (Title → chained Play levels → Win; on defeat, Title in game-over state).
 
 **`src/entities/Player.ts`** — The player character. Handles horizontal movement, jumping, ducking, invincibility frames with a blink effect, and hitbox resizing when ducking.
 
 **`src/entities/Boulder.ts`** — Boulders that spawn on the mountain, bounce down the slope, and roll across the ground. Tracks state (moving, stopped, held, thrown) and applies gravity, friction, and rotation.
 
-**`src/scenes/PlayScene.ts`** — The main gameplay scene. Owns the update loop for spawning boulders at random intervals, running collision checks, pickup/throw (Space), managing screen shake on hit, particle effects on boulder break, and triggering win/lose conditions.
+**`src/scenes/PlayScene.ts`** — The main gameplay scene. Spawns a finite quota of boulders per level from config, runs collisions, pickup/throw (Space), screen shake, break particles, and fires **level complete** when every rock is settled (or gone), or **game over** when hearts hit zero.
 
 **`src/systems/Input.ts`** — Lightweight keyboard manager exposing `isDown(key)` and `wasPressed(key)` per frame.
 
-**`src/systems/SoundManager.ts`** — Generates retro sound effects (jump, hit, bounce, pickup, throw, win, lose) using oscillators and noise via the Web Audio API.
+**`src/systems/SoundManager.ts`** — Generates retro sound effects (jump, hit, bounce, pickup, throw, level complete, win, lose) using oscillators and noise via the Web Audio API.
 
 **`src/systems/Physics.ts`** — Exports shared constants (`GRAVITY`, `GROUND_Y`, `GAME_WIDTH`, `GAME_HEIGHT`, `MOUNTAIN_X`) and an AABB `intersects` helper.
 
@@ -158,3 +162,4 @@ src/
 | `tsconfig.json` | TypeScript — strict mode, ES2020 target, bundler resolution |
 | `vite.config.ts` | Vite — relative base path (`./`) |
 | `index.html` | Minimal HTML shell with `#game` container and pixelated CSS |
+| `src/assets/configs/levels.json` | Per-level boulder quotas (extend the array to add waves) |

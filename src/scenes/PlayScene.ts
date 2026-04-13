@@ -5,15 +5,20 @@ import { Mountain } from '../entities/Mountain';
 import { HUD } from '../entities/HUD';
 import { Input } from '../systems/Input';
 import { SoundManager } from '../systems/SoundManager';
+import type { LevelDef } from '../systems/LevelConfig';
 import { intersects, GROUND_Y } from '../systems/Physics';
 
 const SPAWN_INTERVAL_MIN = 60;
 const SPAWN_INTERVAL_MAX = 150;
 const PICKUP_RANGE = 40;
 const THROW_DISTANCE = 25;
-const WIN_SCORE = 10;
-const MAX_STOPPED_BOULDERS = 4;
 const GRACE_PERIOD = 60;
+
+export type PlaySceneOptions = {
+  level: LevelDef;
+  levelIndex: number;
+  levelCount: number;
+};
 
 export class PlayScene extends Container {
   private player: Player;
@@ -29,13 +34,22 @@ export class PlayScene extends Container {
   private difficulty = 1;
   private graceTimer = GRACE_PERIOD;
 
-  public onWin?: () => void;
-  public onGameOver?: (score: number) => void;
+  private readonly boulderQuota: number;
+  private readonly levelIndex: number;
+  private readonly levelCount: number;
+  private spawnedCount = 0;
+  private levelFinishEmitted = false;
 
-  constructor(input: Input, sound: SoundManager) {
+  public onLevelComplete?: () => void;
+  public onGameOver?: (throwsCount: number) => void;
+
+  constructor(input: Input, sound: SoundManager, options: PlaySceneOptions) {
     super();
     this.input = input;
     this.sound = sound;
+    this.boulderQuota = options.level.boulders;
+    this.levelIndex = options.levelIndex;
+    this.levelCount = options.levelCount;
 
     this.addChild(new Mountain());
     this.addChild(this.boulderLayer);
@@ -46,14 +60,15 @@ export class PlayScene extends Container {
 
     this.hud = new HUD();
     this.addChild(this.hud);
+    this.hud.setLevelProgress(this.levelIndex, this.levelCount, 0, this.boulderQuota);
 
     this.spawnTimer = 80;
+    this.difficulty = Math.min(2.5, 1 + this.levelIndex * 0.12);
   }
 
   update(dt: number) {
     if (this.graceTimer > 0) this.graceTimer -= dt;
 
-    // screen shake
     if (this.shakeTimer > 0) {
       this.shakeTimer -= dt;
       this.x = (Math.random() - 0.5) * this.shakeIntensity;
@@ -66,7 +81,6 @@ export class PlayScene extends Container {
 
     this.player.update(dt, this.input, this.sound);
 
-    // pick up / throw
     if (this.input.wasPressed('Space')) {
       if (this.player.isHolding) {
         this.throwBoulder();
@@ -75,28 +89,16 @@ export class PlayScene extends Container {
       }
     }
 
-    // spawn boulders
-    this.spawnTimer -= dt;
-    if (this.spawnTimer <= 0) {
-      this.spawnBoulder();
-      const range = SPAWN_INTERVAL_MAX - SPAWN_INTERVAL_MIN;
-      this.spawnTimer = SPAWN_INTERVAL_MIN + Math.random() * range / this.difficulty;
-    }
-
-    // remove oldest stopped boulders if too many pile up
-    const stoppedBoulders = this.boulders.filter(b => b.stopped && !b.beingHeld);
-    if (stoppedBoulders.length > MAX_STOPPED_BOULDERS) {
-      const toRemove = stoppedBoulders.slice(0, stoppedBoulders.length - MAX_STOPPED_BOULDERS);
-      for (const old of toRemove) {
-        old.alpha -= 0.05;
-        if (old.alpha <= 0) {
-          this.boulderLayer.removeChild(old);
-          this.boulders.splice(this.boulders.indexOf(old), 1);
-        }
+    // Spawn waves until this level's quota is met
+    if (this.spawnedCount < this.boulderQuota) {
+      this.spawnTimer -= dt;
+      if (this.spawnTimer <= 0) {
+        this.spawnBoulder();
+        const range = SPAWN_INTERVAL_MAX - SPAWN_INTERVAL_MIN;
+        this.spawnTimer = SPAWN_INTERVAL_MIN + (Math.random() * range) / this.difficulty;
       }
     }
 
-    // update boulders
     for (let i = this.boulders.length - 1; i >= 0; i--) {
       const b = this.boulders[i];
       const alive = b.update(dt, () => this.sound.bounce());
@@ -111,21 +113,35 @@ export class PlayScene extends Container {
 
       if (b.stopped || b.beingHeld || b.thrown) continue;
 
-      // collision with player (skip during grace period)
       if (this.graceTimer <= 0 && !this.player.invincible && intersects(this.player.getHitbox(), b.getHitbox())) {
         this.playerHit();
       }
     }
 
-    // ramp difficulty over time
-    this.difficulty = Math.min(2.5, 1 + this.hud.score * 0.1);
+    if (!this.levelFinishEmitted && this.isLevelSettled()) {
+      this.levelFinishEmitted = true;
+      this.onLevelComplete?.();
+    }
+  }
+
+  /** All rocks for this level are out, and nothing is still rolling, flying, or stuck in the player's hands. */
+  private isLevelSettled(): boolean {
+    if (this.spawnedCount < this.boulderQuota) return false;
+    for (const b of this.boulders) {
+      if (b.beingHeld) return false;
+      if (b.thrown) return false;
+      if (!b.stopped) return false;
+    }
+    return true;
   }
 
   private spawnBoulder() {
-    const speed = (0.5 + Math.random() * 2) * this.difficulty;
-    const b = new Boulder(speed);
+    const speed = 0.5 + Math.random() * 2;
+    const b = new Boulder(speed * this.difficulty);
     this.boulders.push(b);
     this.boulderLayer.addChild(b);
+    this.spawnedCount++;
+    this.hud.setLevelProgress(this.levelIndex, this.levelCount, this.spawnedCount, this.boulderQuota);
   }
 
   private tryPickup() {
@@ -152,7 +168,6 @@ export class PlayScene extends Container {
     this.player.isHolding = false;
     this.sound.throwRock();
 
-    // find the held boulder and launch it
     for (const b of this.boulders) {
       if (b.beingHeld) {
         b.beingHeld = false;
@@ -165,10 +180,7 @@ export class PlayScene extends Container {
         b.vy = -3;
         b.thrownTimer = THROW_DISTANCE;
 
-        this.hud.setScore(this.hud.score + 1);
-        if (this.hud.score >= WIN_SCORE) {
-          this.onWin?.();
-        }
+        this.hud.setThrows(this.hud.throws + 1);
         return;
       }
     }
@@ -181,7 +193,7 @@ export class PlayScene extends Container {
     this.shakeIntensity = 6;
     this.hud.setHearts(this.hud.hearts - 1);
     if (this.hud.hearts <= 0) {
-      this.onGameOver?.(this.hud.score);
+      this.onGameOver?.(this.hud.throws);
     }
   }
 

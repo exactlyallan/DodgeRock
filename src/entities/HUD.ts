@@ -1,41 +1,70 @@
 import { Container, Graphics, Text, TextStyle } from 'pixi.js';
+import { GAME_WIDTH } from '../systems/Physics';
 import { drawHeart } from '../utils/PixelArt';
 
 const RETRO_STYLE = new TextStyle({
   fontFamily: 'monospace',
-  fontSize: 20,
+  fontSize: 18,
   fill: 0xffffff,
   fontWeight: 'bold',
   stroke: { color: 0x000000, width: 3 },
 });
 
+const PROGRESS_STYLE = new TextStyle({
+  fontFamily: 'monospace',
+  fontSize: 15,
+  fill: 0xeeffff,
+  fontWeight: 'bold',
+  stroke: { color: 0x000000, width: 2 },
+});
+
 export class HUD extends Container {
   private heartsGfx = new Graphics();
-  private scoreText: Text;
+  private throwsText: Text;
+  private progressText: Text;
   private _hearts = 3;
-  private _score = 0;
+  private _throws = 0;
 
   constructor() {
     super();
     this.addChild(this.heartsGfx);
-    this.scoreText = new Text({ text: 'Score: 0 / 10', style: RETRO_STYLE });
-    this.scoreText.x = 640;
-    this.scoreText.y = 12;
-    this.addChild(this.scoreText);
+
+    this.progressText = new Text({ text: 'Lv 1/1 — Rocks 0/0', style: PROGRESS_STYLE });
+    this.progressText.anchor.set(0.5, 0);
+    this.progressText.x = GAME_WIDTH / 2;
+    this.progressText.y = 8;
+    this.addChild(this.progressText);
+
+    this.throwsText = new Text({ text: 'Throws: 0', style: RETRO_STYLE });
+    this.throwsText.x = GAME_WIDTH - 12;
+    this.throwsText.y = 8;
+    this.throwsText.anchor.set(1, 0);
+    this.addChild(this.throwsText);
+
     this.redraw();
   }
 
-  get hearts() { return this._hearts; }
-  get score() { return this._score; }
+  get hearts() {
+    return this._hearts;
+  }
+  get throws() {
+    return this._throws;
+  }
 
   setHearts(n: number) {
     this._hearts = n;
     this.redraw();
   }
 
-  setScore(n: number) {
-    this._score = n;
-    this.scoreText.text = `Score: ${n} / 10`;
+  setThrows(n: number) {
+    this._throws = n;
+    this.throwsText.text = `Throws: ${n}`;
+  }
+
+  /** Level index is 0-based in code; shown as 1-based to the player. */
+  setLevelProgress(levelIndex: number, levelCount: number, deployed: number, quota: number) {
+    const lv = levelIndex + 1;
+    this.progressText.text = `Lv ${lv}/${levelCount} — Rocks ${deployed}/${quota}`;
   }
 
   private redraw() {

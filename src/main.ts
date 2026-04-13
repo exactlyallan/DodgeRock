@@ -1,6 +1,7 @@
 import { Application, Container, TextureStyle } from 'pixi.js';
 import { Input } from './systems/Input';
 import { SoundManager } from './systems/SoundManager';
+import { getLevels } from './systems/LevelConfig';
 import { TitleScene } from './scenes/TitleScene';
 import { PlayScene } from './scenes/PlayScene';
 import { WinScene } from './scenes/WinScene';
@@ -31,8 +32,10 @@ async function main() {
 
   const input = new Input();
   const sound = new SoundManager();
+  const levels = getLevels();
 
   let currentScene: Scene | null = null;
+  let runLevelIndex = 0;
 
   function setScene(scene: Scene) {
     if (currentScene) {
@@ -42,23 +45,44 @@ async function main() {
     gameWorld.addChild(scene);
   }
 
-  function startTitle(gameOverScore?: number) {
+  function startTitle(gameOverThrows?: number) {
     const scene =
-      gameOverScore !== undefined ? new TitleScene({ gameOverScore }) : new TitleScene();
+      gameOverThrows !== undefined ? new TitleScene({ gameOverThrows }) : new TitleScene();
     setScene(scene);
   }
 
-  function startGame() {
-    const scene = new PlayScene(input, sound);
-    scene.onWin = () => {
-      sound.win();
-      const win = new WinScene();
-      setScene(win);
+  function startGame(continueRun: boolean) {
+    if (!continueRun) {
+      runLevelIndex = 0;
+    }
+
+    const level = levels[runLevelIndex];
+    if (!level) {
+      return;
+    }
+
+    const scene = new PlayScene(input, sound, {
+      level,
+      levelIndex: runLevelIndex,
+      levelCount: levels.length,
+    });
+
+    scene.onLevelComplete = () => {
+      runLevelIndex++;
+      if (runLevelIndex >= levels.length) {
+        sound.win();
+        setScene(new WinScene());
+      } else {
+        sound.levelComplete();
+        startGame(true);
+      }
     };
-    scene.onGameOver = (score: number) => {
+
+    scene.onGameOver = (throwsCount: number) => {
       sound.lose();
-      startTitle(score);
+      startTitle(throwsCount);
     };
+
     setScene(scene);
   }
 
@@ -70,14 +94,14 @@ async function main() {
     if (currentScene instanceof TitleScene) {
       currentScene.update(dt);
       if (input.wasPressed('Space')) {
-        startGame();
+        startGame(false);
       }
     } else if (currentScene instanceof PlayScene) {
       currentScene.update(dt);
     } else if (currentScene instanceof WinScene) {
       currentScene.update(dt);
       if (input.wasPressed('Space')) {
-        startGame();
+        startGame(false);
       }
     }
 
